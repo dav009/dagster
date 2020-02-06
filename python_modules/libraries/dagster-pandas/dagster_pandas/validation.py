@@ -131,6 +131,7 @@ def validate_constraints(dataframe, pandas_columns=None, dataframe_constraints=N
     dataframe_constraints = check.opt_list_param(
         dataframe_constraints, 'dataframe_constraints', of_type=DataFrameConstraint
     )
+    print("now heyre")
 
     if pandas_columns:
         for column in pandas_columns:

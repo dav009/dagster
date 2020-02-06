@@ -102,6 +102,7 @@ class RowCountConstraint(DataFrameConstraint):
         )
 
     def validate(self, dataframe):
+        print("here")
         check.inst_param(dataframe, 'dataframe', DataFrame)
 
         if not (
