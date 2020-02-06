@@ -2,10 +2,23 @@ run_storage:
   module: dagster_postgres.run_storage
   class: PostgresRunStorage
   config:
-    postgres_url: "postgresql://{username}:{password}@{host}:5432/{database}"
+    postgres_url: "postgresql://test:test@localhost:5432/test_run_storage"
 
 event_log_storage:
   module: dagster_postgres.event_log
   class: PostgresEventLogStorage
   config:
-    postgres_url: "postgresql://{username}:{password}@{host}:5432/{database}"
+    postgres_url: "postgresql://test:test@localhost:5432/test_event_log_storage"
+
+local_artifact_storage:
+  module: dagster.core.storage.root
+  class: LocalArtifactStorage
+  config:
+    base_dir: "/var/shared/dagster"
+
+compute_log_manager:
+  module: dagster_aws.s3.compute_log_manager
+  class: S3ComputeLogManager
+  config:
+    bucket: "mycorp-dagster-compute-logs"
+    prefix: "dagster-test-"

@@ -1,7 +1,7 @@
 .. _deployment-gcp:
 
-GCP Deployment
---------------
+Deploying to GCP
+----------------
 
 .. rubric:: Compute Engine hosted Dagit
 

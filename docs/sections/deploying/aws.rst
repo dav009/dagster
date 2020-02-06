@@ -1,34 +1,66 @@
 .. _deployment-aws:
 
-AWS Deployment
---------------
+Deploying to AWS
+----------------
 
-.. rubric:: Quick Start
+Depending on your organization's deployment and infrastructure management tools, deployments to
+cloud services can be accomplished in a wide variety of ways. Internally, we strongly favor
+infrastructure-as-code tools like `Pulumi <https://www.pulumi.com/>`_.
+
+
+Quick start with dagster-aws
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``dagster_aws`` package includes a CLI tool intended to help you get a demo Dagster
+deployment up and running as quickly as possible.
 
 **NOTE: The dagster-aws CLI is not intended to provide a secure configuration, and the instance
-launched will be publicly accessible. For production settings, you should consider manually
-launching a Dagit instance behind your organization's reverse proxies or within your internal
-network.**
+it sets up will be launched into an existing VPC and publicly accessible. In production settings,
+you will want to launch Dagit into an appropriately configured VPC, using an appropriate security
+group, etc.**
 
-If you are on AWS, there is a quick start CLI utility in ``dagster-aws`` to automate the setup
-process. Ensure you have AWS credentials on your local machine, and run:
+Ensure you have AWS credentials on your local machine, and run:
 
 .. code-block:: shell
 
-    mkdir -p ~/dagster
-    export DAGSTER_HOME=~/dagster
+    mkdir -p ~/dagster_aws
+    export DAGSTER_HOME=~/dagster_aws
     pip install dagster dagit dagster-aws
     dagster-aws init
 
-This script will walk you through setting up an EC2 VM instance to host Dagit, as well as creating a
-security group and key pair along the way. Once completed, the configuration for this is stored on
-your local machine in ``$DAGSTER_HOME/.dagit-aws-config``; subsequent usage of ``dagster-aws`` will
-use this configuration to connect to your running EC2 instance.
+This script will walk you through the set up of an EC2 instance to host Dagit. You can also choose
+to launch an RDS instance; if you do so, the remote EC2 instance will automatically be configured
+to talk to RDS via a ``dagster.yaml`` file in the remote ``$DAGSTER_HOME``.
 
-This script will optionally launch an RDS instance for you; if you choose to launch an RDS
-PostgreSQL instance, the remote EC2 instance will automatically be configured to talk to RDS via a
-``dagster.yaml`` file in the remote ``$DAGSTER_HOME``. See the docs on the
-:ref:`Dagster Instance <deployment-reference>` for more information about this configuration.
+This script will output a configuration file at ``$DAGSTER_HOME/dagit-aws-config.yaml``, which will
+look something like this:
+
+.. code-block:: YAML
+
+    ec2:
+      ami_id: ami-08fd8ae3806f09a08
+      instance_id: i-07330e77c4dd1bc81
+      key_file_path: /path/to/dagster-keypair-test-20200205T222824.pem
+      key_pair_name: dagster-keypair-test-20200205T222824
+      local_path: null
+      region: us-west-1
+      remote_host: ec2-54-67-22-239.us-west-1.compute.amazonaws.com
+      security_group_id: sg-02cd3b76c352c2098
+    rds:
+      db_engine: postgres
+      db_engine_version: '11.5'
+      db_name: dagster
+      instance_name: dagster-rds-test
+      instance_type: db.t3.small
+      instance_uri: dagster-rds-test.cldkwizddrkj.us-west-1.rds.amazonaws.com
+      password: dWz9gDZWo2RQL7Dm
+      storage_size_gb: 20
+      username: dagster
+
+Subsequent usage of the ``dagster-aws`` CLI tool on the same machine will use this configuration to
+connect to your running EC2 instance.
+
+FIXME
 
 Once the EC2 instance is launched and ready, you can synchronize your Dagster code to it using:
 
