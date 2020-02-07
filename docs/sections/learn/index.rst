@@ -13,4 +13,8 @@ data engineering and data science workflows.
 .. toctree::
   :maxdepth: 2
 
-  guides/index
+  solid/solid
+  logging/logging
+  data_science/data_science
+  testing/testing
+  deploying/index
