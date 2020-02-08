@@ -4,13 +4,39 @@ from dagster_pandas import PandasColumn, create_dagster_pandas_dataframe_type
 from numpy import nan
 from pandas import DataFrame
 
-from dagster import OutputDefinition, pipeline, solid
+from dagster import EventMetadataEntry, OutputDefinition, pipeline, solid
 
 NOW = datetime.now()
 
 
-TripDataFrame = create_dagster_pandas_dataframe_type(
-    name='TripDataFrame',
+def compute_trip_dataframe_summary_statistics(dataframe):
+    return [
+        EventMetadataEntry.text(
+            min(dataframe['start_time']).strftime('%Y-%m-%d'),
+            'min_start_time',
+            'Date data collection started',
+        ),
+        EventMetadataEntry.text(
+            max(dataframe['end_time']).strftime('%Y-%m-%d'),
+            'max_end_time',
+            'Date data collection ended',
+        ),
+        EventMetadataEntry.text(
+            str(dataframe['bike_id'].nunique()),
+            'num_unique_bikes',
+            'Number of unique bikes that took trips',
+        ),
+        EventMetadataEntry.text(
+            str(len(dataframe)), 'n_rows', 'Number of rows seen in the dataframe'
+        ),
+        EventMetadataEntry.text(
+            str(dataframe.columns), 'columns', 'Keys of columns seen in the dataframe'
+        ),
+    ]
+
+
+SummaryStatsTripDataFrame = create_dagster_pandas_dataframe_type(
+    name='SummaryStatsTripDataFrame',
     columns=[
         PandasColumn.integer_column('bike_id', min_value=0),
         PandasColumn.categorical_column('color', categories={'red', 'green', 'blue'}),
@@ -20,11 +46,18 @@ TripDataFrame = create_dagster_pandas_dataframe_type(
         PandasColumn.exists('amount_paid'),
         PandasColumn.boolean_column('was_member'),
     ],
+    event_metadata_fn=compute_trip_dataframe_summary_statistics,
 )
 
 
-@solid(output_defs=[OutputDefinition(name='trip_dataframe', dagster_type=TripDataFrame)],)
-def load_sugar_trip_dataframe(_) -> DataFrame:
+@solid(
+    output_defs=[
+        OutputDefinition(
+            name='summary_stats_trip_dataframe', dagster_type=SummaryStatsTripDataFrame
+        )
+    ],
+)
+def load_summary_stats_trip_dataframe(_) -> DataFrame:
     return DataFrame(
         {
             'bike_id': [1, 2, 3, 1],
@@ -49,5 +82,5 @@ def load_sugar_trip_dataframe(_) -> DataFrame:
 
 
 @pipeline
-def sugar_pipeline():
-    load_sugar_trip_dataframe()
+def summary_stats_pipeline():
+    load_summary_stats_trip_dataframe()
