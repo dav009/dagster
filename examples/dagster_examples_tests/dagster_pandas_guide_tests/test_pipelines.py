@@ -13,7 +13,12 @@ from dagster import execute_pipeline
 
 @pytest.mark.parametrize(
     'pipeline',
-    [custom_column_constraint_pipeline, shape_constrained_pipeline, summary_stats_pipeline, sugar_pipeline, ],
+    [
+        custom_column_constraint_pipeline,
+        shape_constrained_pipeline,
+        summary_stats_pipeline,
+        sugar_pipeline,
+    ],
 )
 def test_guide_pipelines_success(pipeline):
     pipeline_result = execute_pipeline(pipeline)
