@@ -5,8 +5,6 @@ from dagster_pandas.constraints import (
     ColumnConstraint,
     ColumnConstraintViolationException,
     ColumnTypeConstraint,
-    RowCountConstraint,
-    StrictColumnsConstraint,
 )
 from pandas import DataFrame, read_csv
 
@@ -35,22 +33,8 @@ class DivisibleByFiveConstraint(ColumnConstraint):
 CustomTripDataFrame = create_dagster_pandas_dataframe_type(
     name='CustomTripDataFrame',
     columns=[
-        PandasColumn.integer_column('bike_id', min_value=0),
-        PandasColumn.categorical_column('color', categories={'red', 'green', 'blue'}),
-        PandasColumn.datetime_column(
-            'start_time', min_datetime=datetime(year=2020, month=2, day=10)
-        ),
-        PandasColumn.datetime_column('end_time', min_datetime=datetime(year=2020, month=2, day=10)),
-        PandasColumn.string_column('station'),
         PandasColumn(
             'amount_paid', constraints=[ColumnTypeConstraint('int64'), DivisibleByFiveConstraint()]
-        ),
-        PandasColumn.boolean_column('was_member'),
-    ],
-    dataframe_constraints=[
-        RowCountConstraint(4),
-        StrictColumnsConstraint(
-            ['bike_id', 'color', 'start_time', 'end_time', 'station', 'amount_paid', 'was_member']
         ),
     ],
 )

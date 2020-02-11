@@ -1,35 +1,13 @@
 from datetime import datetime
 
-from dagster_pandas import (
-    PandasColumn,
-    RowCountConstraint,
-    StrictColumnsConstraint,
-    create_dagster_pandas_dataframe_type,
-)
+from dagster_pandas import RowCountConstraint, create_dagster_pandas_dataframe_type
 from pandas import DataFrame, read_csv
 
 from dagster import OutputDefinition, pipeline, solid
 from dagster.utils import script_relative_path
 
 ShapeConstrainedTripDataFrame = create_dagster_pandas_dataframe_type(
-    name='ShapeConstrainedTripDataFrame',
-    columns=[
-        PandasColumn.integer_column('bike_id', min_value=0),
-        PandasColumn.categorical_column('color', categories={'red', 'green', 'blue'}),
-        PandasColumn.datetime_column(
-            'start_time', min_datetime=datetime(year=2020, month=2, day=10)
-        ),
-        PandasColumn.datetime_column('end_time', min_datetime=datetime(year=2020, month=2, day=10)),
-        PandasColumn.string_column('station'),
-        PandasColumn.exists('amount_paid'),
-        PandasColumn.boolean_column('was_member'),
-    ],
-    dataframe_constraints=[
-        RowCountConstraint(4),
-        StrictColumnsConstraint(
-            ['bike_id', 'color', 'start_time', 'end_time', 'station', 'amount_paid', 'was_member']
-        ),
-    ],
+    name='ShapeConstrainedTripDataFrame', dataframe_constraints=[RowCountConstraint(4),],
 )
 
 
