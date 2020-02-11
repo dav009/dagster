@@ -104,10 +104,28 @@
 **New**
 
 - `dagster/priority` tags can now be used to prioritize the order of execution for the built in in process and multiprocess engines.
+- `dagster-postgres` storages can now be configured with serperate arguments and environment variables, ie
+
+  ```
+  run_storage:
+    module: dagster_postgres.run_storage
+    class: PostgresRunStorage
+    config:
+      postgres_db:
+        username: test
+        password:
+          env: TEST_PG_PASSWORD
+        hostname: localhost
+        db_name: test
+  ```
+
+- Support for `RunLauncher`s on DagsterInstance allows for execution outside of the dagit process.
 
 **Bugfix**
 
 - Ensured that all implementations of `RunStorage` clean up run tags when a run is deleted. May require a storage migration, using `dagster instance migrate`.
+- The multiprocess engine now handle solid subsets correctly
+- The multiprocess engine will now correctly skip steps downstream of failures
 
 ## 0.6.8
 
