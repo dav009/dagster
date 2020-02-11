@@ -12,7 +12,7 @@ from dagster import (
 )
 
 
-def less_simple_data_frame_type_check(value):
+def less_simple_data_frame_type_check(_, value):
     if not isinstance(value, list):
         return False
 
@@ -49,14 +49,10 @@ LessSimpleDataFrame = DagsterType(
 def sort_by_calories(context, cereals: LessSimpleDataFrame):
     sorted_cereals = sorted(cereals, key=lambda cereal: cereal['calories'])
     context.log.info(
-        'Least caloric cereal: {least_caloric}'.format(
-            least_caloric=sorted_cereals[0]['name']
-        )
+        'Least caloric cereal: {least_caloric}'.format(least_caloric=sorted_cereals[0]['name'])
     )
     context.log.info(
-        'Most caloric cereal: {most_caloric}'.format(
-            most_caloric=sorted_cereals[-1]['name']
-        )
+        'Most caloric cereal: {most_caloric}'.format(most_caloric=sorted_cereals[-1]['name'])
     )
 
 
@@ -68,11 +64,5 @@ def custom_type_pipeline():
 if __name__ == '__main__':
     execute_pipeline(
         custom_type_pipeline,
-        {
-            'solids': {
-                'sort_by_calories': {
-                    'inputs': {'cereals': {'csv': 'cereal.csv'}}
-                }
-            }
-        },
+        {'solids': {'sort_by_calories': {'inputs': {'cereals': {'csv': 'cereal.csv'}}}}},
     )
