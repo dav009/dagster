@@ -7,12 +7,22 @@ fullnameOverride: ""
 
 rbacEnabled: true
 
+# The DAGSTER_HOME env var is set on all nodes from this value
+dagster_home: "/opt/dagster/dagster_home"
+
+# Dagit image repository and tag to deploy
 dagit:
-  image: "dagster-docker-buildkite:latest"
+  image:
+    repository: "dagster-docker-buildkite"
+    tag: "latest"
   nameOverride: ""
 
-# Image to use for executing jobs; this is typically the same image as dagit
-job_image: "dagster-docker-buildkite:latest"
+# The Dagster K8sRunLauncher will invoke job executions in containers running this image
+job_image:
+  image:
+    repository: "dagster-docker-buildkite"
+    tag: "latest"
+  nameOverride: ""
 
 workers:
   nameOverride: ""
