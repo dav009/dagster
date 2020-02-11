@@ -11,12 +11,14 @@ from dagster import (
     InputDefinition,
     Int,
     List,
+    ModeDefinition,
     Optional,
     OutputDefinition,
     TypeCheck,
     execute_pipeline,
     lambda_solid,
     pipeline,
+    resource,
     solid,
 )
 from dagster.core.types.dagster_type import (
@@ -64,23 +66,23 @@ def test_python_object_type_with_custom_type_check():
 def test_nullable_python_object_type():
     nullable_type_bar = resolve_dagster_type(Optional[Bar])
 
-    assert_type_check(nullable_type_bar.type_check(BarObj()))
-    assert_type_check(nullable_type_bar.type_check(None))
+    assert_type_check(nullable_type_bar.type_check(None, BarObj()))
+    assert_type_check(nullable_type_bar.type_check(None, None))
 
-    res = nullable_type_bar.type_check('not_a_bar')
+    res = nullable_type_bar.type_check(None, 'not_a_bar')
     assert not res.success
 
 
 def test_nullable_int_coercion():
     int_type = resolve_dagster_type(Int)
-    assert_type_check(int_type.type_check(1))
+    assert_type_check(int_type.type_check(None, 1))
 
-    res = int_type.type_check(None)
+    res = int_type.type_check(None, None)
     assert not res.success
 
     nullable_int_type = resolve_dagster_type(Optional[Int])
-    assert_type_check(nullable_int_type.type_check(1))
-    assert_type_check(nullable_int_type.type_check(None))
+    assert_type_check(nullable_int_type.type_check(None, 1))
+    assert_type_check(nullable_int_type.type_check(None, None))
 
 
 def assert_type_check(type_check):
@@ -88,12 +90,12 @@ def assert_type_check(type_check):
 
 
 def assert_success(runtime_type, value):
-    type_check_result = runtime_type.type_check(value)
+    type_check_result = runtime_type.type_check(None, value)
     assert_type_check(type_check_result)
 
 
 def assert_failure(runtime_type, value):
-    res = runtime_type.type_check(value)
+    res = runtime_type.type_check(None, value)
     assert not res.success
 
 
@@ -568,3 +570,34 @@ def test_raise_on_error_true_type_check_returns_successful_type_check():
         DagsterEventType.STEP_OUTPUT.value,
         DagsterEventType.STEP_SUCCESS.value,
     ]
+
+
+def test_contextual_type_check():
+    def fancy_type_check(context, value):
+        return TypeCheck(success=context.resources.foo.check(value))
+
+    custom = DagsterType(
+        key='custom', name='custom', type_check_fn=fancy_type_check, required_resource_keys={'foo'}
+    )
+
+    @resource
+    def foo(_context):
+        class _Foo:
+            def check(self, _value):
+                return True
+
+        return _Foo()
+
+    @lambda_solid
+    def return_one():
+        return 1
+
+    @solid(input_defs=[InputDefinition('inp', custom)])
+    def bar(_context, inp):
+        return inp
+
+    @pipeline(mode_defs=[ModeDefinition(resource_defs={'foo': foo})])
+    def fancy_pipeline():
+        bar(return_one())
+
+    assert execute_pipeline(fancy_pipeline).success

@@ -9,6 +9,7 @@ from dagster.config.config_type import Noneable as ConfigNoneable
 from dagster.core.definitions.events import TypeCheck
 from dagster.core.errors import DagsterInvalidDefinitionError, DagsterInvariantViolationError
 from dagster.core.storage.type_storage import TypeStoragePlugin
+from dagster.seven import get_args
 
 from .builtin_config_schemas import BuiltinSchemas
 from .config_schema import InputHydrationConfig, OutputMaterializationConfig
@@ -72,6 +73,7 @@ class DagsterType(object):
         output_materialization_config=None,
         serialization_strategy=None,
         auto_plugins=None,
+        required_resource_keys=None,
     ):
         check.opt_str_param(key, 'key')
         check.opt_str_param(name, 'name')
@@ -107,8 +109,12 @@ class DagsterType(object):
             SerializationStrategy,
             PickleSerializationStrategy(),
         )
+        self.required_resource_keys = check.opt_set_param(
+            required_resource_keys, 'required_resource_keys',
+        )
 
         self._type_check_fn = check.callable_param(type_check_fn, 'type_check_fn')
+        self._contextual_type_check = _is_contextual_type_check_fn(self._type_check_fn, self.name)
 
         auto_plugins = check.opt_list_param(auto_plugins, 'auto_plugins', of_type=type)
 
@@ -127,8 +133,11 @@ class DagsterType(object):
             'All types must have a valid display name, got None for key {}'.format(key),
         )
 
-    def type_check(self, value):
-        retval = self._type_check_fn(value)
+    def type_check(self, context, value):
+        if self._contextual_type_check:
+            retval = self._type_check_fn(context, value)
+        else:
+            retval = self._type_check_fn(value)
 
         if not isinstance(retval, (bool, TypeCheck)):
             raise DagsterInvariantViolationError(
@@ -183,6 +192,34 @@ class DagsterType(object):
     @property
     def is_nothing(self):
         return False
+
+
+def _is_contextual_type_check_fn(fn, name):
+    args = get_args(fn)
+
+    if len(args) == 1:
+        return False
+
+    if len(args) == 2:
+        possible_names = {
+            '_',
+            'context',
+            '_context',
+            'context_',
+        }
+        if args[0] not in possible_names:
+            DagsterInvalidDefinitionError(
+                'type_check function on type "{name}" with '
+                'two arguments must have first argument "context".'.format(name=name,)
+            )
+        return True
+
+    raise DagsterInvalidDefinitionError(
+        'type_check function on type "{name}" must take '
+        'either 1 (value) or 2 (context, value) arguments - received {count}.'.format(
+            name=name, count=len(args)
+        )
+    )
 
 
 class BuiltinScalarDagsterType(DagsterType):
@@ -440,8 +477,10 @@ class OptionalType(DagsterType):
     def display_name(self):
         return self.inner_type.display_name + '?'
 
-    def type_check_method(self, value):
-        return TypeCheck(success=True) if value is None else self.inner_type.type_check(value)
+    def type_check_method(self, context, value):
+        return (
+            TypeCheck(success=True) if value is None else self.inner_type.type_check(context, value)
+        )
 
     @property
     def is_nullable(self):
@@ -493,13 +532,13 @@ class ListType(DagsterType):
     def display_name(self):
         return '[' + self.inner_type.display_name + ']'
 
-    def type_check_method(self, value):
+    def type_check_method(self, context, value):
         value_check = _fail_if_not_of_type(value, list, 'list')
         if not value_check.success:
             return value_check
 
         for item in value:
-            item_check = self.inner_type.type_check(item)
+            item_check = self.inner_type.type_check(context, item)
             if not item_check.success:
                 return item_check
 
