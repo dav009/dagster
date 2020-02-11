@@ -203,7 +203,7 @@ def yield_empty_pipeline_context(run_id=None, instance=None):
     with scoped_pipeline_context(
         pipeline,
         {},
-        PipelineRun.create_empty_run('empty', run_id=run_id),
+        PipelineRun.create_empty_run('empty', run_id=run_id if run_id is not None else 'TESTING',),
         instance or DagsterInstance.ephemeral(),
         create_execution_plan(pipeline),
     ) as context:
@@ -304,14 +304,17 @@ def check_dagster_type(dagster_type, value):
         )
 
     runtime_type = resolve_dagster_type(dagster_type)
-    type_check = runtime_type.type_check(value)
-    if not isinstance(type_check, TypeCheck):
-        raise DagsterInvariantViolationError(
-            'Type checks can only return TypeCheck. Type {type_name} returned {value}.'.format(
-                type_name=runtime_type.name, value=repr(type_check)
+    with yield_empty_pipeline_context() as pipeline_context:
+        context = pipeline_context.for_type(runtime_type)
+        type_check = runtime_type.type_check(context, value)
+
+        if not isinstance(type_check, TypeCheck):
+            raise DagsterInvariantViolationError(
+                'Type checks can only return TypeCheck. Type {type_name} returned {value}.'.format(
+                    type_name=runtime_type.name, value=repr(type_check)
+                )
             )
-        )
-    return type_check
+        return type_check
 
 
 @contextmanager
