@@ -36,12 +36,12 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
-          image: "{{ .Values.dagit.image }}"
+          image: "{{ .Values.dagit.image.repository }}:{{ .Values.dagit.image.tag }}"
           command: ["dagster-celery"]
           args: ["worker", "start", "-y", "/opt/dagster/dagster_home/celery-config.yaml"]
           env:
           - name: DAGSTER_HOME
-            value: "/opt/dagster/dagster_home"
+            value: "{{ .Values.dagster_home }}"
           volumeMounts:
             - name: dagster-instance
               mountPath: "/opt/dagster/dagster_home/dagster.yaml"
