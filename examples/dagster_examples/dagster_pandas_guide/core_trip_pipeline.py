@@ -1,18 +1,13 @@
 from datetime import datetime
 
-from dagster_pandas import (
-    PandasColumn,
-    RowCountConstraint,
-    StrictColumnsConstraint,
-    create_dagster_pandas_dataframe_type,
-)
+from dagster_pandas import PandasColumn, create_dagster_pandas_dataframe_type
 from pandas import DataFrame, read_csv
 
 from dagster import OutputDefinition, pipeline, solid
 from dagster.utils import script_relative_path
 
-ShapeConstrainedTripDataFrame = create_dagster_pandas_dataframe_type(
-    name='ShapeConstrainedTripDataFrame',
+TripDataFrame = create_dagster_pandas_dataframe_type(
+    name='TripDataFrame',
     columns=[
         PandasColumn.integer_column('bike_id', min_value=0),
         PandasColumn.categorical_column('color', categories={'red', 'green', 'blue'}),
@@ -24,23 +19,11 @@ ShapeConstrainedTripDataFrame = create_dagster_pandas_dataframe_type(
         PandasColumn.exists('amount_paid'),
         PandasColumn.boolean_column('was_member'),
     ],
-    dataframe_constraints=[
-        RowCountConstraint(4),
-        StrictColumnsConstraint(
-            ['bike_id', 'color', 'start_time', 'end_time', 'station', 'amount_paid', 'was_member']
-        ),
-    ],
 )
 
 
-@solid(
-    output_defs=[
-        OutputDefinition(
-            name='shape_constrained_trip_dataframe', dagster_type=ShapeConstrainedTripDataFrame
-        )
-    ],
-)
-def load_shape_constrained_trip_dataframe(_) -> DataFrame:
+@solid(output_defs=[OutputDefinition(name='trip_dataframe', dagster_type=TripDataFrame)],)
+def load_trip_dataframe(_) -> DataFrame:
     return read_csv(
         script_relative_path('./ebike_trips.csv'),
         parse_dates=['start_time', 'end_time'],
@@ -49,5 +32,5 @@ def load_shape_constrained_trip_dataframe(_) -> DataFrame:
 
 
 @pipeline
-def shape_constrained_pipeline():
-    load_shape_constrained_trip_dataframe()
+def trip_pipeline():
+    load_trip_dataframe()

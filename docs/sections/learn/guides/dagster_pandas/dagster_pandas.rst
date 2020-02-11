@@ -17,15 +17,15 @@ Creating Dagster DataFrame Types
 To create a custom dagster pandas type use ``create_dagster_pandas_dataframe_type`` and provide a list of
 ``PandasColumn`` objects which act as containers for your columns and their constraints. However, we provide a
 ton of convenience constructors. To further illustrate this idea, take a look at
-the next example which creates a custom dagster dataframe that details e-bike trips. Given this, we can construct
+the following example which creates a custom dagster dataframe that details e-bike trips. Given this, we can construct
 our dagster pandas type and hook it into our solids in the following way:
 
-.. literalinclude:: ../../../../../examples/dagster_examples/dagster_pandas_guide/sugar_pipeline.py
-   :caption: sugar_pipeline.py
+.. literalinclude:: ../../../../../examples/dagster_examples/dagster_pandas_guide/core_trip_pipeline.py
+   :caption: core_trip_pipeline.py
 
-By passing in these `PandasColumn` objects, you are expressing the schema and constraints you expect your dataframe
-to folow and when dagster performs type checks for your solids. Moreover, if you go to the solid viewer, you can
-see your schema documented for you in dagit:
+By passing in these ``PandasColumn`` objects, you are expressing the schema and constraints you expect your dataframe
+to follow when dagster performs type checks for your solids. Moreover, if you go to the solid viewer, you can
+follow your schema documented for you in dagit:
 
 .. thumbnail:: tutorial2.png
 
@@ -65,7 +65,7 @@ the quality of the data they receive, it becomes important to monitor data as it
 pipelines, this can help debug and monitor data drift over time. Let's illustrate how this works in our example:
 
 .. literalinclude:: ../../../../../examples/dagster_examples/dagster_pandas_guide/summary_stats_pipeline.py
-   :lines: 12-50
+   :lines: 10-50
    :caption: summary_stats_pipeline.py
 
 Now if you run this pipeline in the dagit playground, you should see the following:
@@ -88,7 +88,7 @@ all it needs is a ``markdown_description`` for dagit which accepts and renders m
 if a row fails validation. This would look like the following:
 
 .. literalinclude:: ../../../../../examples/dagster_examples/dagster_pandas_guide/custom_column_constraint_pipeline.py
-   :lines: 36-55
+   :lines: 35-56
    :caption: custom_column_constraint_pipeline.py
 
 Hopefully this gives a decent picture of how dataframes ought to be used in dagster and the syntactic sugar

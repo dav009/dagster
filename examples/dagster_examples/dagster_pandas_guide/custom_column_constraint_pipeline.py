@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from dagster_pandas import PandasColumn, create_dagster_pandas_dataframe_type
 from dagster_pandas.constraints import (
@@ -8,11 +8,10 @@ from dagster_pandas.constraints import (
     RowCountConstraint,
     StrictColumnsConstraint,
 )
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
 
 from dagster import OutputDefinition, pipeline, solid
-
-NOW = datetime.now()
+from dagster.utils import script_relative_path
 
 
 class DivisibleByFiveConstraint(ColumnConstraint):
@@ -38,8 +37,10 @@ CustomTripDataFrame = create_dagster_pandas_dataframe_type(
     columns=[
         PandasColumn.integer_column('bike_id', min_value=0),
         PandasColumn.categorical_column('color', categories={'red', 'green', 'blue'}),
-        PandasColumn.datetime_column('start_time', min_datetime=NOW),
-        PandasColumn.datetime_column('end_time', min_datetime=NOW),
+        PandasColumn.datetime_column(
+            'start_time', min_datetime=datetime(year=2020, month=2, day=10)
+        ),
+        PandasColumn.datetime_column('end_time', min_datetime=datetime(year=2020, month=2, day=10)),
         PandasColumn.string_column('station'),
         PandasColumn(
             'amount_paid', constraints=[ColumnTypeConstraint('int64'), DivisibleByFiveConstraint()]
@@ -59,26 +60,10 @@ CustomTripDataFrame = create_dagster_pandas_dataframe_type(
     output_defs=[OutputDefinition(name='custom_trip_dataframe', dagster_type=CustomTripDataFrame)],
 )
 def load_custom_trip_dataframe(_) -> DataFrame:
-    return DataFrame(
-        {
-            'bike_id': [1, 2, 3, 1],
-            'color': ['red', 'green', 'blue', 'red'],
-            'start_time': [
-                NOW,
-                NOW + timedelta(hours=1),
-                NOW + timedelta(hours=5, days=2),
-                NOW + timedelta(hours=3),
-            ],
-            'end_time': [
-                NOW + timedelta(hours=1),
-                NOW + timedelta(hours=2),
-                NOW + timedelta(hours=7, days=2),
-                NOW + timedelta(hours=4),
-            ],
-            'station': ['civic center', 'montgomery', 'civic center', 'mission'],
-            'amount_paid': [20, 10, 5, 0],
-            'was_member': [True, False, False, False],
-        }
+    return read_csv(
+        script_relative_path('./ebike_trips.csv'),
+        parse_dates=['start_time', 'end_time'],
+        date_parser=lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S.%f'),
     )
 
 
