@@ -68,9 +68,9 @@ def celery_executor(init_context):
         execution:
           celery:
             config:
-              broker?: 'pyamqp://guest@localhost//',  # The URL of the Celery broker
-              backend?: 'rpc://', # The URL of the Celery results backend
-              include?: ['my_module'], # List of modules every worker should import
+              broker: 'pyamqp://guest@localhost//',  # Optional[str]: The URL of the Celery broker
+              backend: 'rpc://', # Optional[str]: The URL of the Celery results backend
+              include: ['my_module'], # Optional[List[str]]: Modules every worker should import
               config_source:
                   ...
 

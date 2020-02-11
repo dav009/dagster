@@ -1,0 +1,149 @@
+Celery executor
+---------------
+
+`Celery <http://www.celeryproject.org/>`_ is a longstanding open-source Python distributed task
+queue system, with support for a variety of queues (brokers) and result persistence strategies
+(backends).
+
+The ``dagster-celery`` executor levers Celery's capabilities to satisfy three typical requirements
+when running pipelines in production:
+
+1. Parallel execution capacity that scales horizontally across multiple compute nodes.
+2. Separate queues to isolate execution and control external resource usage at the solid level.
+3. Priority-based execution at the solid level.
+
+The dagster-celery executor compiles a pipeline definition and its associated configuration into a
+concrete execution plan, and then submits each execution step to the broker as a separate Celery
+task. The dagster-celery workers then pick up tasks from the queues to which they are subscribed,
+according to the priorities assigned to each task, and execute the steps to which the tasks
+correspond.
+
+Quick start
+^^^^^^^^^^^
+
+Let's construct a very parallel toy pipeline and then execute it using the Celery executor.
+
+.. literalinclude:: celery_pipeline.py
+  :linenos:
+  :caption: celery_pipeline.py
+
+Save this pipeline as `celery_pipeline.py`.
+
+To run the Celery executor, you'll need a running broker like
+`RabbitMQ <https://www.rabbitmq.com/>`_. With Docker, this is as simple as:
+
+.. code-block:: shell
+
+    docker run -p 5672:5672 rabbitmq:3.8.2
+
+You will also need to run a Celery worker to execute tasks. From the same directory in which you
+saved the pipeline file, run:
+
+.. code-block:: shell
+
+    dagster-celery worker start
+
+Now you can execute this pipeline with Celery. Again, from the same directory in which you saved the
+pipeline file, run:
+
+.. code-block:: shell
+
+    dagit -f celery_pipeline.py -n parallel_pipeline
+
+Now can execute the parallel pipeline with the following config:
+
+.. code-block:: YAML
+
+    execution:
+      celery:
+    storage:
+      filesystem:
+
+Ensuring workers are in sync
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the quick start, we cheated in a couple of ways:
+
+- By running a single worker on the same node as dagit, so that local ephemeral run storage and
+  event log storage could be shared between them, and so that filesystem intermediates storage
+  would be sufficient to exchange values between the worker's task executions.
+- By running the worker in the same directory to which we saved ``celery_pipeline.py``, so that
+  our Dagster code would be available both to Dagit and to the worker.
+
+In production, you will need to be a little more careful.
+
+First, ensure that appropriate persistent run and event log storage, e.g.,
+:py:class:`~dagster_postgres.PostgresRunStorage` and
+:py:class:`~dagster_postgres.PostgresEventLogStorage`, are configured on your Dagster instance,
+so that Dagit and the workers can communicate information about the run and events. You can do this
+by adding a block such as the following to your ``dagster.yaml``:
+
+.. literalinclude:: dagster-pg.yaml
+
+**The same instance config must be present in Dagit's environment and in the workers' environments.**
+
+Second, you will need to configure persistent system storage for any pipeline runs that you'd like
+to execute using the Celery workers. Each worker must have access to this storage, so it must either
+be a cloud storage they can all access, such as :py:data:`~dagster_aws.s3_system_storage` or
+:py:data:`~dagster_gcp.gcs_system_storage`, or a fileystem that is shared between the workers, such
+as an NFS mount.
+
+Third, if you are using custom config for your pipeline runs -- for instance, using a different
+Celery broker url or backend -- you must ensure that your workers start up with this config. Make
+sure your engine config is present in a YAML file accessible to the workers and start them with the
+``-y`` parameter as follows:
+
+.. code-block:: shell
+
+    dagster-celery worker start -y /path/to/celery_config.yaml
+
+Finally, you will need to make sure that the Dagster code you want the workers to execute is present
+in their environment, and that it is in sync with the code present on the node running Dagit.
+The easiest way to do this is typically to package your code into a Python module, and for the
+``repository.yaml`` you use to run Dagit to refer to the module.
+
+CLI
+^^^
+
+In the quick start above, we started our workers using the ``dagster-celery`` CLI, rather than
+by invoking Celery directly. This CLI is intended as a convenience wrapper for the common case that
+shields users from the full complexity of Celery configuration. Of course, it's still possible to
+start Celery workers directly -- but please let us know if you find yourself going down this path.
+
+Run ``dagster-celery worker start`` to start new workers, ``dagster-celery worker list`` to view
+running workers, and ``dagster-celery worker terminate`` to terminate workers. For all of these
+commands, it's essential that you have your broker running.
+
+If you are running your celery cluster with custom config (e.g., the broker URL or backend), you
+should also pass a path to a YAML file containing that config to the ``-y`` parameter of all these
+invocations. Otherwise, workers will not start up with the config you are expecting, and the CLI
+may not be able to find running workers to list or terminate them.
+
+Although this system is deliberately designed to make the full range of Celery config available
+as needed, keep in mind that Celery exposes many knobs, many combinations of which are not
+compatible with each other. However, workloads also differ widely. If you are runnning many
+pipelines with very long-running or very short-running tasks, for instance, and you are already
+comfortable tuning Celery, you might find that changing some of the settings works better for your
+case.
+
+Monitoring and debugging
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+There are several available tools for monitoring and debugging your queues and workers. First, of
+course, is Dagit, which will display event logs and the stdout/stderr from your pipeline executions.
+You can also observe the logs generated by your broker and by the worker processes.
+
+To debug broker/queue level issues, you should use the monitoring tools provided by the broker
+you're running. RabbitMQ includes a `monitoring API <https://www.rabbitmq.com/monitoring.html>`_
+and has first class support for Prometheus & Grafana integration in production.
+
+Celery also includes the excellent `Flower <https://flower.readthedocs.io/en/latest/>`_ tool for
+monitoring your Celery workers and queues. This can be very useful in understanding how workers
+interact with the queue.
+
+Broker and backend
+^^^^^^^^^^^^^^^^^^
+
+At the moment, dagster-celery is tested using the RabbitMQ broker and the default RPC backend. At
+least one team is running dagster-celery using SQS as the broker, and we intend to expand the
+scope of broker/backend matrix testing, probably starting with the Postgres backend.

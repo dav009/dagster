@@ -22,4 +22,6 @@ API Docs
   apidocs/dagster_celery
   apidocs/dagster_cron
   apidocs/dagster_dask
+  apidocs/dagster_gcp
   apidocs/dagster_k8s
+  apidocs/dagster_postgres
