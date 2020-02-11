@@ -1,11 +1,17 @@
 import os
 from functools import partial
 
+import dagster_pandas
 import pytest
 from dagster_examples.bay_bikes.pipelines import monthly_trip_pipeline
 from pandas import DataFrame
 
-from dagster import execute_pipeline, seven
+from dagster import execute_pipeline, make_python_type_usable_as_dagster_type, seven
+
+# Make pandas.DataFrame map to dagster_pandas.DataFrame
+make_python_type_usable_as_dagster_type(
+    python_type=DataFrame, dagster_type=dagster_pandas.DataFrame
+)
 
 FAKE_ZIPFILE_NAME = 'data.csv.zip'
 
