@@ -46,13 +46,13 @@ We can do this by providing a list of dataframe constraints to ``create_dagster_
 constraint objects live in ``dagster_pandas/constraints.py``. Two such constraints are
 the ``RowCountConstraint`` and ``StrictColumnsConstraint``.
 
-Let's extend the example above to illustrate this:
+This looks like:
 
 .. literalinclude:: ../../../../../examples/dagster_examples/dagster_pandas_guide/shape_constrained_pipeline.py
-   :lines: 12-17
+   :lines: 9-11
    :caption: shape_constrained_pipeline.py
 
-So if we rerun the above example with this dataframe, nothing should change. However, if we pass in 100 to the row
+If we rerun the above example with this dataframe, nothing should change. However, if we pass in 100 to the row
 count constraint, we can watch our pipeline fail that type check.
 
 .. _dataframe_summary_statistics:
