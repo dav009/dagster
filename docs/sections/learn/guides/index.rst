@@ -2,9 +2,12 @@ Guides
 =======================
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
+  :includehidden:
+
 
   solid/solid
+  partitioning/index
   testing/testing
   testing/expectations
   logging/logging
